@@ -1,0 +1,15 @@
+name: second workflow
+on: 
+   push: 
+       branches: ['master']
+   pull_request:
+       branches: ['master']
+   workflow_dispatch: 
+jobs:
+    build:
+      runs-on: ubuntu-latest
+      steps: 
+        - name: event triggered by
+        - run: |
+              echo "Triggered by event: ${{ github.event_name }}"
+        
