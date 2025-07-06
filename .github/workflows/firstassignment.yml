@@ -1,0 +1,21 @@
+name: first workflow
+
+on: 
+  push:
+   branches: ['master']
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu_latest
+
+    steps: 
+      - name: Runs a one line script
+        run: echo Hello from GitHub Actions!
+
+      - name: Run a multi-line script
+        run: |
+          echo Add other actions to build,
+          echo test, and deploy your project.
+      
+
