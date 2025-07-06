@@ -41,4 +41,8 @@ jobs:
 
       - name: Terraform Apply
         working-directory: terraform/aws-vpc
+        run: terraform apply -auto-approve
+
+      - name: Terraform destroy
+        working-directory: terraform/aws-vpc
         run: terraform destroy -auto-approve
