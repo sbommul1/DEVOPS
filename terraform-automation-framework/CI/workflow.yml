@@ -1,0 +1,73 @@
+name: Terraform CI Template
+
+on:
+  workflow_call:
+    inputs:
+      environment:
+        required: true
+        type: string
+    secrets:
+      AWS_ACCESS_KEY_ID:
+        required: true
+      AWS_SECRET_ACCESS_KEY:
+        required: true
+
+jobs:
+  terraform:
+    name: Terraform CI/CD
+    runs-on: ubuntu-latest
+
+    env:
+      TF_VAR_environment: ${{ inputs.environment }}
+      AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ env.TF_VERSION }}
+
+      - name: Terraform Init
+        run: terraform init -backend-config="key=env/${{ inputs.environment }}/terraform.tfstate"
+
+      - name: Terraform Format
+        run: terraform fmt -check -recursive
+
+      - name: Terraform Validate
+        run: terraform validate
+
+      - name: Security Scan with tfsec
+        uses: aquasecurity/tfsec-action@v1.0.0
+
+      - name: Terraform Plan
+        run: |
+          terraform plan -var-file="environments/${{ inputs.environment }}/main.tfvars" -out=tfplan.out
+
+      - name: Upload Plan Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: tfplan
+          path: tfplan.out
+
+      - name: Terraform Apply (auto-approve for dev)
+        if: inputs.environment == 'dev'
+        run: terraform apply -auto-approve tfplan.out
+
+      - name: Manual Approval for non-dev
+        if: inputs.environment != 'dev'
+        uses: trstringer/manual-approval@v1
+        with:
+          secret: ${{ github.token }}
+          approvers: saikrishna, client-lead
+          timeout_minutes: 60
+          issue_title: "Approve ${{ inputs.environment }} Deployment"
+          issue_body: "Approve Terraform deployment to `${{ inputs.environment }}` environment."
+
+      - name: Terraform Apply (non-dev)
+        if: inputs.environment != 'dev'
+        run: terraform apply -auto-approve tfplan.out
+
